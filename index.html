@@ -68,8 +68,8 @@ header{
 .mkt-closed{background:rgba(255,23,68,.1);color:#ff6b6b;border:1px solid rgba(255,23,68,.3);}
 .mkt-pre{background:rgba(251,191,36,.12);color:#fbbf24;border:1px solid rgba(251,191,36,.3);}
 .hdr-btn{font-family:var(--font);font-size:14px;font-weight:700;border-radius:8px;padding:8px 16px;cursor:pointer;border:none;transition:all .2s;}
-.btn-sparkle{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#1a0533;font-size:15px;}
-.btn-sparkle:hover{transform:scale(1.05);box-shadow:0 0 20px rgba(251,191,36,.5);}
+.btn-sparkle{background:linear-gradient(135deg,#fde68a,#f59e0b);color:#1a0533;font-size:17px;font-weight:900;letter-spacing:.5px;border:2px solid rgba(255,255,255,.8);box-shadow:0 0 18px rgba(251,191,36,.7),inset 0 1px 0 rgba(255,255,255,.4);}
+.btn-sparkle:hover{transform:scale(1.08);box-shadow:0 0 32px rgba(251,191,36,1);}
 .btn-mute{background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.25)!important;color:#fff;font-size:13px;border:none;}
 .btn-mute:hover{background:rgba(255,255,255,.1);}
 .btn-scan-hdr{background:var(--purple);color:#fff;font-size:15px;padding:9px 22px;box-shadow:0 0 15px rgba(168,85,247,.4);}
@@ -235,7 +235,7 @@ main{padding:18px 24px;}
       <div id="mkt-badge" class="mkt-closed">CLOSED</div>
     </div>
     <button class="hdr-btn btn-mute" id="mute-btn" onclick="toggleMute()" title="Toggle sound">🔊 Sound</button>
-    <button class="hdr-btn btn-sparkle" onclick="sparkle()">✨ Sparkle!</button>
+    <button class="hdr-btn btn-sparkle" onclick="sparkle()">⭐ SPARKLE ⭐</button>
     <button class="hdr-btn btn-scan-hdr" id="scan-btn" onclick="runScan()">▶ SCAN</button>
   </div>
 </header>
@@ -324,99 +324,197 @@ let sW, sH, sparkles=[], celestials=[], sparkleActive=false, sparkleTimer=null;
 function sResize(){sW=sparkleCanvas.width=window.innerWidth;sH=sparkleCanvas.height=window.innerHeight;}
 sResize();window.addEventListener('resize',sResize);
 
-class Sparkle{
+// ── SHOOTING STAR ──
+class ShootingStar{
+  constructor(){
+    // Start from top-left area, shoot diagonally across screen
+    this.x = Math.random()*sW*0.6;
+    this.y = Math.random()*sH*0.4;
+    this.len = 120+Math.random()*180;
+    this.speed = 14+Math.random()*12;
+    this.angle = Math.PI/5+Math.random()*0.3; // ~36 deg diagonal
+    this.vx = Math.cos(this.angle)*this.speed;
+    this.vy = Math.sin(this.angle)*this.speed;
+    this.alpha = 1;
+    this.colors = ['#ffffff','#fbbf24','#c084fc','#93c5fd','#f9a8d4'];
+    this.color = this.colors[Math.floor(Math.random()*this.colors.length)];
+    this.done = false;
+    this.tail = []; // trail points
+    this.maxTail = 18;
+  }
+  update(){
+    this.tail.push({x:this.x,y:this.y});
+    if(this.tail.length>this.maxTail)this.tail.shift();
+    this.x+=this.vx; this.y+=this.vy;
+    if(this.x>sW+200||this.y>sH+200) this.done=true;
+  }
+  draw(){
+    if(this.tail.length<2)return;
+    // Draw glowing trail
+    for(let i=1;i<this.tail.length;i++){
+      const t=i/this.tail.length;
+      sCtx.save();
+      sCtx.globalAlpha=t*0.9;
+      sCtx.strokeStyle=this.color;
+      sCtx.lineWidth=t*3.5;
+      sCtx.shadowColor=this.color;
+      sCtx.shadowBlur=8*t;
+      sCtx.beginPath();
+      sCtx.moveTo(this.tail[i-1].x,this.tail[i-1].y);
+      sCtx.lineTo(this.tail[i].x,this.tail[i].y);
+      sCtx.stroke();
+      sCtx.restore();
+    }
+    // Bright head
+    sCtx.save();
+    sCtx.globalAlpha=1;
+    sCtx.fillStyle='#ffffff';
+    sCtx.shadowColor=this.color;
+    sCtx.shadowBlur=16;
+    sCtx.beginPath();
+    sCtx.arc(this.x,this.y,2.5,0,Math.PI*2);
+    sCtx.fill();
+    sCtx.restore();
+    // Tiny star burst at head
+    sCtx.save();
+    sCtx.globalAlpha=0.7;
+    sCtx.fillStyle=this.color;
+    sCtx.font='11px serif';
+    sCtx.textAlign='center';
+    sCtx.textBaseline='middle';
+    sCtx.fillText('✦',this.x,this.y);
+    sCtx.restore();
+  }
+}
+
+// ── TWINKLING STAR (background) ──
+class TwinkleStar{
   constructor(){
     this.x=Math.random()*sW;this.y=Math.random()*sH;
-    this.size=1+Math.random()*4;
-    this.alpha=0;this.maxAlpha=0.5+Math.random()*0.5;
-    this.growing=true;this.speed=0.02+Math.random()*0.04;
-    this.color=['#fbbf24','#f9a8d4','#c084fc','#93c5fd','#ffffff'][Math.floor(Math.random()*5)];
-    this.points=4+Math.floor(Math.random()*2);
+    this.size=0.8+Math.random()*2.5;
+    this.alpha=0;this.maxAlpha=0.4+Math.random()*0.6;
+    this.growing=true;this.speed=0.015+Math.random()*0.03;
+    this.color=['#fbbf24','#f9a8d4','#c084fc','#93c5fd','#ffffff','#86efac'][Math.floor(Math.random()*6)];
   }
   update(){
     if(this.growing){this.alpha+=this.speed;if(this.alpha>=this.maxAlpha)this.growing=false;}
-    else{this.alpha-=this.speed*0.7;}}
+    else{this.alpha-=this.speed*0.8;}
+  }
   draw(){
     if(this.alpha<=0)return;
-    sCtx.save();sCtx.globalAlpha=this.alpha;sCtx.fillStyle=this.color;
+    sCtx.save();sCtx.globalAlpha=this.alpha;
+    sCtx.fillStyle=this.color;
+    sCtx.shadowColor=this.color;sCtx.shadowBlur=6;
+    // 4-point star
     sCtx.translate(this.x,this.y);
-    // Draw star shape
     sCtx.beginPath();
-    for(let i=0;i<this.points*2;i++){
-      const r=i%2===0?this.size:this.size*0.4;
-      const a=(Math.PI/this.points)*i;
-      i===0?sCtx.moveTo(Math.cos(a)*r,Math.sin(a)*r):sCtx.lineTo(Math.cos(a)*r,Math.sin(a)*r);
-    }
-    sCtx.closePath();sCtx.fill();sCtx.restore();
+    const s=this.size;
+    sCtx.moveTo(0,-s*2);sCtx.lineTo(s*0.4,-s*0.4);
+    sCtx.lineTo(s*2,0);sCtx.lineTo(s*0.4,s*0.4);
+    sCtx.lineTo(0,s*2);sCtx.lineTo(-s*0.4,s*0.4);
+    sCtx.lineTo(-s*2,0);sCtx.lineTo(-s*0.4,-s*0.4);
+    sCtx.closePath();sCtx.fill();
+    sCtx.restore();
   }
   get done(){return !this.growing&&this.alpha<=0;}
 }
 
+// ── SUN / MOON ──
 class Celestial{
   constructor(type){
-    this.type=type; // 'sun' or 'moon'
-    this.x=-120;this.y=80+Math.random()*(sH*0.5);
-    this.speed=2+Math.random()*2;this.size=type==='sun'?45:40;
+    this.type=type;
+    this.x=-130;this.y=60+Math.random()*(sH*0.55);
+    this.speed=2.5+Math.random()*2;
+    this.size=type==='sun'?46:42;
     this.done=false;this.rays=0;
   }
-  update(){this.x+=this.speed;if(this.x>sW+150)this.done=true;this.rays+=0.05;}
+  update(){this.x+=this.speed;if(this.x>sW+160)this.done=true;this.rays+=0.04;}
   draw(){
     sCtx.save();sCtx.translate(this.x,this.y);
     if(this.type==='sun'){
-      // Rays
-      sCtx.strokeStyle='rgba(251,191,36,.5)';sCtx.lineWidth=2;
-      for(let i=0;i<8;i++){
-        const a=(Math.PI/4)*i+this.rays;
+      // Animated rays
+      for(let i=0;i<12;i++){
+        const a=(Math.PI*2/12)*i+this.rays;
+        const inner=this.size+5,outer=this.size+16+Math.sin(this.rays*3+i)*4;
+        sCtx.strokeStyle='rgba(251,191,36,.6)';sCtx.lineWidth=2.5;
+        sCtx.shadowColor='#fbbf24';sCtx.shadowBlur=8;
         sCtx.beginPath();
-        sCtx.moveTo(Math.cos(a)*(this.size+4),Math.sin(a)*(this.size+4));
-        sCtx.lineTo(Math.cos(a)*(this.size+14),Math.sin(a)*(this.size+14));
+        sCtx.moveTo(Math.cos(a)*inner,Math.sin(a)*inner);
+        sCtx.lineTo(Math.cos(a)*outer,Math.sin(a)*outer);
         sCtx.stroke();
       }
-      // Sun body
-      sCtx.fillStyle='#fbbf24';
+      // Glowing body
+      sCtx.shadowColor='#fbbf24';sCtx.shadowBlur=30;
+      const grad=sCtx.createRadialGradient(0,0,0,0,0,this.size);
+      grad.addColorStop(0,'#fff7c0');grad.addColorStop(0.6,'#fbbf24');grad.addColorStop(1,'#f59e0b');
+      sCtx.fillStyle=grad;
       sCtx.beginPath();sCtx.arc(0,0,this.size,0,Math.PI*2);sCtx.fill();
-      // Face
-      sCtx.fillStyle='#92400e';sCtx.font='bold '+(this.size*.9)+'px serif';
-      sCtx.textAlign='center';sCtx.textBaseline='middle';sCtx.fillText('☀',0,2);
+      // Smiley face
+      sCtx.shadowBlur=0;sCtx.fillStyle='#92400e';
+      // Eyes
+      sCtx.beginPath();sCtx.arc(-13,-8,4,0,Math.PI*2);sCtx.fill();
+      sCtx.beginPath();sCtx.arc(13,-8,4,0,Math.PI*2);sCtx.fill();
+      // Smile
+      sCtx.strokeStyle='#92400e';sCtx.lineWidth=3;sCtx.lineCap='round';
+      sCtx.beginPath();sCtx.arc(0,6,14,0.15,Math.PI-0.15);sCtx.stroke();
     } else {
       // Moon glow
-      sCtx.shadowColor='#c084fc';sCtx.shadowBlur=20;
-      sCtx.fillStyle='#e9d5ff';
+      sCtx.shadowColor='#c084fc';sCtx.shadowBlur=28;
+      const grad=sCtx.createRadialGradient(-6,-6,0,0,0,this.size);
+      grad.addColorStop(0,'#f3e8ff');grad.addColorStop(0.7,'#d8b4fe');grad.addColorStop(1,'#a855f7');
+      sCtx.fillStyle=grad;
       sCtx.beginPath();sCtx.arc(0,0,this.size,0,Math.PI*2);sCtx.fill();
+      // Crescent cutout (dark circle offset)
+      sCtx.globalCompositeOperation='destination-out';
+      sCtx.fillStyle='rgba(0,0,0,.85)';
+      sCtx.beginPath();sCtx.arc(14,0,this.size*0.8,0,Math.PI*2);sCtx.fill();
+      sCtx.globalCompositeOperation='source-over';
+      // Little stars nearby
       sCtx.shadowBlur=0;
-      // Moon crescent mask
-      sCtx.fillStyle=`hsl(260,40%,8%)`;
-      sCtx.beginPath();sCtx.arc(12,0,this.size*.82,0,Math.PI*2);sCtx.fill();
-      // Stars near moon
-      sCtx.fillStyle='#fbbf24';
-      [[30,-20],[40,5],[25,25]].forEach(([dx,dy])=>{
-        sCtx.font='14px serif';sCtx.textAlign='center';sCtx.textBaseline='middle';sCtx.fillText('★',dx,dy);
+      [[36,-22,'★'],[48,4,'✦'],[32,26,'★']].forEach(([dx,dy,ch])=>{
+        sCtx.fillStyle='#fbbf24';sCtx.font='bold 14px serif';
+        sCtx.textAlign='center';sCtx.textBaseline='middle';
+        sCtx.fillText(ch,dx,dy);
       });
     }
     sCtx.restore();
   }
 }
 
+let shootingStars=[];
+
 function sparkleLoop(){
   sCtx.clearRect(0,0,sW,sH);
-  if(sparkleActive&&sparkles.length<200) sparkles.push(new Sparkle());
+  // Spawn twinkling stars
+  if(sparkleActive&&sparkles.length<180) sparkles.push(new TwinkleStar());
+  // Spawn shooting stars randomly
+  if(sparkleActive&&Math.random()<0.04&&shootingStars.length<6) shootingStars.push(new ShootingStar());
   sparkles=sparkles.filter(s=>!s.done);
+  shootingStars=shootingStars.filter(s=>!s.done);
   celestials=celestials.filter(c=>!c.done);
   sparkles.forEach(s=>{s.update();s.draw();});
+  shootingStars.forEach(s=>{s.update();s.draw();});
   celestials.forEach(c=>{c.update();c.draw();});
-  if(sparkles.length||celestials.length||sparkleActive) requestAnimationFrame(sparkleLoop);
+  if(sparkles.length||shootingStars.length||celestials.length||sparkleActive) requestAnimationFrame(sparkleLoop);
   else sCtx.clearRect(0,0,sW,sH);
 }
 
 function sparkle(){
   sparkleActive=true;
+  shootingStars=[];
   if(sparkleTimer)clearTimeout(sparkleTimer);
   requestAnimationFrame(sparkleLoop);
-  // Launch sun then moon
-  setTimeout(()=>celestials.push(new Celestial('sun')),300);
-  setTimeout(()=>celestials.push(new Celestial('moon')),2200);
-  setTimeout(()=>celestials.push(new Celestial('sun')),4000);
-  sparkleTimer=setTimeout(()=>{sparkleActive=false;},7000);
+  // Launch 3 immediate shooting stars
+  for(let i=0;i<3;i++) setTimeout(()=>shootingStars.push(new ShootingStar()),i*350);
+  // Sun floats across
+  setTimeout(()=>celestials.push(new Celestial('sun')),500);
+  // More shooting stars mid-way
+  setTimeout(()=>{for(let i=0;i<4;i++) setTimeout(()=>shootingStars.push(new ShootingStar()),i*300);},2500);
+  // Moon floats across
+  setTimeout(()=>celestials.push(new Celestial('moon')),3200);
+  // Final burst of shooting stars
+  setTimeout(()=>{for(let i=0;i<5;i++) setTimeout(()=>shootingStars.push(new ShootingStar()),i*250);},5000);
+  sparkleTimer=setTimeout(()=>{sparkleActive=false;},8500);
 }
 
 // ══ SOUND ══
