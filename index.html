@@ -519,6 +519,7 @@ const STORE_LEVELS = 'qdte_levels_v2';
 const DEFAULT_TICKERS = [
   {s:'QQQ', n:'Invesco Nasdaq-100 ETF'},
   {s:'SPY', n:'SPDR S&P 500 ETF'},
+  {s:'IWM', n:'iShares Russell 2000 ETF'},
 ];
 let CUSTOM_TICKERS = [];
 function loadCustom(){try{return JSON.parse(localStorage.getItem(STORE_CUSTOM))||[];}catch(e){return[];}}
