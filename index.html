@@ -353,7 +353,9 @@ main{padding:18px 24px;}
 <header>
   <div class="hdr-stars" id="hdr-stars"></div>
   <div class="logo-wrap">
-    <div class="logo-icon">🌳</div>
+    <div class="logo-icon" style="display:flex;align-items:flex-start;gap:2px;line-height:1;">
+      <span style="font-size:32px;filter:drop-shadow(0 0 8px #fbbf24);">⭐</span><span style="font-size:16px;filter:drop-shadow(0 0 6px #fbbf24);margin-top:2px;">✦</span>
+    </div>
     <div>
       <div class="logo-text">Our Money Tree 🌳</div>
       <div class="logo-sub">RSI · BB · EMA · Key Levels · Hit Rate</div>
@@ -684,16 +686,21 @@ class Celestial{
 
 function sparkleLoop(){
   sCtx.clearRect(0,0,sW,sH);
+  // Always spawn gentle background twinkles — constant shimmer
+  if(sparkles.length<60)sparkles.push(new TwinkleStar());
+  // Extra burst twinkles + shooting stars only during active sparkle events
   if(sparkleActive&&sparkles.length<180)sparkles.push(new TwinkleStar());
   if(sparkleActive&&Math.random()<0.04&&shootingStars.length<6)shootingStars.push(new ShootingStar());
+  // Occasional gentle shooting star even when not in sparkle mode
+  if(!sparkleActive&&Math.random()<0.004&&shootingStars.length<2)shootingStars.push(new ShootingStar());
   sparkles=sparkles.filter(s=>!s.done);
   shootingStars=shootingStars.filter(s=>!s.done);
   celestials=celestials.filter(c=>!c.done);
   sparkles.forEach(s=>{s.update();s.draw();});
   shootingStars.forEach(s=>{s.update();s.draw();});
   celestials.forEach(c=>{c.update();c.draw();});
-  if(sparkles.length||shootingStars.length||celestials.length||sparkleActive)requestAnimationFrame(sparkleLoop);
-  else sCtx.clearRect(0,0,sW,sH);
+  // Always keep the loop running for constant background sparkle
+  requestAnimationFrame(sparkleLoop);
 }
 
 function sparkle(opts={}){
@@ -1655,6 +1662,9 @@ window.addEventListener('load',()=>{
   const hadCache=loadPersistedData();
   if(hadCache)buildLevelsPanel();
   runScan();
+  // Start constant background sparkle immediately
+  requestAnimationFrame(sparkleLoop);
+  // Then do the full opening sparkle burst after a moment
   setTimeout(()=>sparkle(),700);
 });
 </script>
