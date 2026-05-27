@@ -1491,14 +1491,14 @@ function removeTicker(sym){
 
 // ══ PUSHOVER ══
 const STORE_PO = 'qdte_pushover_v1';
-let poKeys = {userKey:'', userKey2:'', apiToken:'', emergency:false, retrySeconds:60, expireSeconds:600};
+let poKeys = {userKey:'uu8pn64i2qdwv7276dw97nzqd8kuyu', userKey2:'', apiToken:'a3i25areffto3pstw3vyt6an1re73w', emergency:false, retrySeconds:60, expireSeconds:600};
 
 function loadPushoverKeys(){
   try{
     const saved=JSON.parse(localStorage.getItem(STORE_PO)||'{}');
-    poKeys.userKey=saved.userKey||'';
-    poKeys.userKey2=saved.userKey2||'';
-    poKeys.apiToken=saved.apiToken||'';
+    poKeys.userKey=poKeys.userKey||saved.userKey||'';
+    poKeys.userKey2=poKeys.userKey2||saved.userKey2||'';
+    poKeys.apiToken=poKeys.apiToken||saved.apiToken||'';
     const uk=document.getElementById('po-user-key');
     const uk2=document.getElementById('po-user-key2');
     const at=document.getElementById('po-api-token');
