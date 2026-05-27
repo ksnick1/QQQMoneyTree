@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>QQQ · SPY 0DTE Scanner</title>
+<title>Our Money Tree 🌳</title>
 
 <link id="fav" rel="icon" type="image/png" href=""/>
 <script>
@@ -353,10 +353,10 @@ main{padding:18px 24px;}
 <header>
   <div class="hdr-stars" id="hdr-stars"></div>
   <div class="logo-wrap">
-    <div class="logo-icon">⭐</div>
+    <div class="logo-icon">🌳</div>
     <div>
-      <div class="logo-text">QQQ · SPY 0DTE Scanner</div>
-      <div class="logo-sub">RSI · Bollinger Bands · 200 EMA · Key Levels · Intraday Hit Rate</div>
+      <div class="logo-text">Our Money Tree 🌳</div>
+      <div class="logo-sub">RSI · BB · EMA · Key Levels · Hit Rate</div>
     </div>
   </div>
   <div class="hdr-right">
@@ -1492,7 +1492,7 @@ function removeTicker(sym){
 
 // ══ PUSHOVER ══
 const STORE_PO = 'qdte_pushover_v1';
-let poKeys = {userKey:'uu8pn64i2qdwv7276dw97nzqd8kuyu', userKey2:'', apiToken:'a3i25areffto3pstw3vyt6an1re73w', emergency:false, retrySeconds:60, expireSeconds:600};
+let poKeys = {userKey:'uu8pn64i2qdwv7276dw97nzqd8kuyu', userKey2:'usk923mtq7io4qw54omr4xr7faxhyt', apiToken:'a3i25areffto3pstw3vyt6an1re73w', emergency:false, retrySeconds:60, expireSeconds:600};
 
 function loadPushoverKeys(){
   try{
@@ -1638,7 +1638,7 @@ async function testPushover(){
   st.textContent='📲 Sending test…';st.className='po-status';
   await sendPushover(
     '🎆 Scanner Test',
-    'Your QQQ · SPY scanner is connected! You will receive alerts like this when price crosses your key levels.',
+    'Your Our Money Tree scanner is connected! You will receive alerts like this when price crosses your key levels.',
     'magic'
   );
   const phoneCount=[poKeys.userKey,poKeys.userKey2].filter(Boolean).length;
