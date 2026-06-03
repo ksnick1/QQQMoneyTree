@@ -651,23 +651,56 @@ function loadPersistedData(){
 }
 function hideCacheBanner(){document.getElementById('cache-banner').classList.remove('show');}
 
-// ══ MAIN SCAN ══
+// ══ INDICATOR CACHE (6hr TTL) ══
+const STORE_IND_CACHE = 'qdte_ind_cache_v1';
+const IND_TTL = 6 * 60 * 60 * 1000;
+let indCache = {};
+function loadIndCache(){try{indCache=JSON.parse(localStorage.getItem(STORE_IND_CACHE))||{};}catch(e){indCache={};}}
+function saveIndCache(){try{localStorage.setItem(STORE_IND_CACHE,JSON.stringify(indCache));}catch(e){}}
+function getCachedInd(sym){const e=indCache[sym];if(!e||Date.now()-e.ts>IND_TTL)return null;return e.v;}
+function setCachedInd(sym,v){indCache[sym]={ts:Date.now(),v};saveIndCache();}
+
+// Override fetchYahoo to use cache
+async function fetchYahooCached(sym){
+  const cached=getCachedInd(sym);if(cached)return cached;
+  const result=await fetchYahoo(sym);
+  if(result)setCachedInd(sym,result);
+  return result;
+}
+
+// ══ MAIN SCAN — all tickers in parallel ══
 async function runScan(){
   if(scanning)return;scanning=true;
   const btn=document.getElementById('scan-btn');btn.disabled=true;btn.textContent='⏳ Scanning…';
-  setProg('Fetching prices and indicators…',5);
-  const TICKERS=getTickers();const results=[];
-  for(let i=0;i<TICKERS.length;i++){
-    const t=TICKERS[i];setProg(`${t.s}: fetching…`,10+Math.round(i/TICKERS.length*85));
-    const row=await buildRowData(t);
-    if(row){results.push(row);scanData=[...results];renderCard(row);checkSignalChange(row);}
-    if(i<TICKERS.length-1)await sleep(350);
-  }
+  setProg('Fetching all tickers in parallel…',5);
+  const TICKERS=getTickers();
+  let done=0;
+
   const placeholder=document.querySelector('.loading-card');if(placeholder)placeholder.remove();
-  scanData=[...results];scanning=false;btn.disabled=false;btn.textContent='▶ SCAN';
-  setProg('✅ '+results.length+' tickers scanned',100);
+
+  await Promise.allSettled(TICKERS.map(async t=>{
+    const[quote,yf]=await Promise.all([fhQuote(t.s),fetchYahooCached(t.s)]);
+    if(quote){
+      const price=quote.price,chg=quote.chg;
+      let rsi=null,bb=null,ema200=null,levelData=null,hrCall=null,hrPut=null;
+      if(yf){const{closes,highs,lows,opens}=yf;const indCloses=closes.slice(0,-1);rsi=calcRSI(indCloses,14);bb=calcBB(indCloses,20,2);ema200=calcEMA(indCloses,Math.min(200,indCloses.length));levelData=calcLevels(closes,highs,lows);hrCall=calcHitRate(closes,highs,lows,opens,'call');hrPut=calcHitRate(closes,highs,lows,opens,'put');}
+      const sc=scoreRow(rsi,bb,ema200,price);
+      let bbLbl='Mid Band',bbCls='bb-mid',bbPct=null;
+      if(bb){bbPct=((price-bb.middle)/bb.middle)*100;if(price<=bb.lower){bbLbl='Lower Band';bbCls='bb-lo';}else if(price>=bb.upper){bbLbl='Upper Band';bbCls='bb-hi';}}
+      const emaPct=ema200!=null?((price-ema200)/ema200)*100:null;
+      const row={sym:t.s,name:t.n||t.s,price,chg,rsi,bb,bbLbl,bbCls,bbPct,ema200,emaPct,levelData,hrCall,hrPut,score:sc.score,scoreLabel:sc.label,scoreCls:sc.cls,cardCls:sc.cardCls,fresh:true,ts:Date.now()};
+      const idx=scanData.findIndex(r=>r.sym===t.s);
+      if(idx>=0)scanData[idx]=row;else scanData.push(row);
+      renderCard(row);checkSignalChange(row);
+    }
+    done++;
+    setProg(`Loading… ${done}/${TICKERS.length}`,5+Math.round(done/TICKERS.length*90));
+  }));
+
+  scanning=false;btn.disabled=false;btn.textContent='▶ SCAN';
+  setProg('✅ '+scanData.length+' tickers scanned',100);
   const now=fmtTime();document.getElementById('last-scan').textContent=now;document.getElementById('sb-price').textContent=now;
-  document.getElementById('sb-ind').textContent='Yahoo Finance via Cloudflare Worker (local calc)';
+  document.getElementById('sb-ind').textContent='Yahoo Finance via Cloudflare Worker (cached 6hr)';
   saveData();hideCacheBanner();buildLevelsPanel();checkLevels();startPriceRefresh();
 }
 
@@ -721,6 +754,7 @@ async function testPushover(){if(!poKeys.userKey||!poKeys.apiToken){const st=doc
 // ══ INIT ══
 CUSTOM_TICKERS=loadCustom();
 loadLevels();
+loadIndCache();
 window.addEventListener('load',()=>{
   buildLevelsPanel();
   loadPushoverKeys();
